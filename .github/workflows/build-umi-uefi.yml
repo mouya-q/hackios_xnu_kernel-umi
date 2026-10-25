@@ -1,0 +1,80 @@
+name: Build umi UEFI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'uefi/**'
+      - 'common/devices/umi.conf'
+      - '.github/workflows/build-umi-uefi.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'uefi/**'
+      - 'common/devices/umi.conf'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout hackios-xnu-kernel
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            build-essential git lld nasm clang llvm \
+            python3 python3-pip python3-venv \
+            mono-complete libgcrypt20-dev
+          # tomllib requires Python 3.11+; ubuntu-22.04 ships 3.10
+          sudo add-apt-repository -y ppa:deadsnakes/ppa
+          sudo apt-get install -y -qq python3.11 python3.11-venv python3.11-dev
+
+      - name: Clone and patch Mu-Silicium
+        run: |
+          cd uefi
+          bash apply.sh
+
+      - name: Setup Python venv and install dependencies
+        run: |
+          python3.11 -m venv venv
+          venv/bin/pip install -r Mu-Silicium/pip-requirements.txt
+
+      - name: Replace mu_nasm with system nasm
+        run: |
+          D=Mu-Silicium/Mu_Basecore/BaseTools/Bin/mu_nasm_extdep
+          mkdir -p "$D/Linux-x86-64"
+          echo 'version: 20016.1.1' > "$D/extdep_state.yaml"
+          ln -sf /usr/bin/nasm  "$D/Linux-x86-64/nasm"
+          ln -sf /usr/bin/ndisasm "$D/Linux-x86-64/ndisasm"
+
+      - name: Build umi UEFI FD
+        run: |
+          source venv/bin/activate
+          cd Mu-Silicium
+          python3 build_uefi.py -d umi -r RELEASE
+
+      - name: Verify UEFI FD
+        run: |
+          FD=Mu-Silicium/Build/umiPkg/RELEASE_CLANGPDB/FV/SILICIUM_UEFI.fd
+          if [ -f "$FD" ]; then
+            echo "UEFI FD built successfully"
+            ls -la "$FD"
+          else
+            echo "ERROR: UEFI FD not found at $FD"
+            find Mu-Silicium/Build -name "*.fd" 2>/dev/null
+            exit 1
+          fi
+
+      - name: Upload UEFI FD artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: umi-uefi-fd
+          path: Mu-Silicium/Build/umiPkg/RELEASE_CLANGPDB/FV/SILICIUM_UEFI.fd
+          retention-days: 30
