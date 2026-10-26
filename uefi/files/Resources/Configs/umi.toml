@@ -1,5 +1,6 @@
 #
 # Boot Shim Configs for umi (SM8250 / Kona)
+# Matches Jrorz/umi-mi10 verified working configuration.
 #
 [boot_shim]
 requires_kernel_header = true
@@ -13,13 +14,15 @@ size = 0x300000
 
 #
 # Android Boot Image Kernel Configs
+# append_dtb=true: DTB appended to gzip'd kernel (v1 format)
 #
 [boot_image_kernel]
 kernel_compression = "gzip"
-append_dtb         = false
+append_dtb         = true
 
 #
 # Android Boot Image Configs
+# header_version=1: matches Jrorz/umi-mi10 and alioth reference
 #
 [boot_image]
-header_version = 2
+header_version = 1
