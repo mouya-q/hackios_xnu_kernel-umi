@@ -31,10 +31,10 @@
   gArmTokenSpaceGuid.PcdSystemMemoryBase|0x80000000
 
   #
-  # UEFI Stack (Kona: 0x9FFB0000, 128KB)
+  # UEFI Stack (Kona: 0x9FF90000, 256KB -- matches kebab/OnePlus 8T SM8250)
   #
-  gArmPlatformTokenSpaceGuid.PcdCPUCoresStackBase|0x9FFB0000
-  gArmPlatformTokenSpaceGuid.PcdCPUCorePrimaryStackSize|0x20000
+  gArmPlatformTokenSpaceGuid.PcdCPUCoresStackBase|0x9FF90000
+  gArmPlatformTokenSpaceGuid.PcdCPUCorePrimaryStackSize|0x40000
 
   #
   # SMBIOS
